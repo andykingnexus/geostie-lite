@@ -3,6 +3,7 @@
     "name": "geosite.dat",
     "mode": "allowlist",
     "lists": [
+      "category-ai-!cn",
       "apple-update",
       "tiktok",
       "google",
