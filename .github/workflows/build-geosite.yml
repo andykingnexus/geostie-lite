@@ -1,0 +1,86 @@
+name: Build trimmed geosite.dat
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 每天 UTC 20:20 执行，约等于北京时间 04:20 / 韩国时间 05:20
+    - cron: "20 20 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-trimmed-geosite
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v4
+        with:
+          path: self
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: false
+
+      - name: Clone upstream domain-list-community
+        run: |
+          git clone --depth=1 https://github.com/v2fly/domain-list-community.git upstream
+
+      - name: Build trimmed geosite.dat
+        run: |
+          cp self/datprofile.json upstream/datprofile.json
+          cd upstream
+          go mod download
+          go run ./main.go --datprofile ./datprofile.json
+
+          test -s geosite.dat
+
+          mkdir -p ../dist
+          cp geosite.dat ../dist/geosite.dat
+          cd ../dist
+          sha256sum geosite.dat > geosite.dat.sha256sum
+
+          cat > README.md <<'EOF'
+          # Trimmed geosite.dat
+
+          Source: v2fly/domain-list-community
+
+          Included lists:
+
+          - geosite:apple-update
+          - geosite:tiktok
+          - geosite:google
+          - geosite:apple
+          - geosite:microsoft
+          - geosite:xbox
+          - geosite:cn
+          EOF
+
+      - name: Publish to release branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd dist
+
+          git init
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git checkout -b release
+          git add geosite.dat geosite.dat.sha256sum README.md
+          git commit -m "Update trimmed geosite.dat"
+
+          git push -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" release
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: geosite.dat
+          path: dist/geosite.dat
