@@ -1,0 +1,15 @@
+[
+  {
+    "name": "geosite.dat",
+    "mode": "allowlist",
+    "lists": [
+      "apple-update",
+      "tiktok",
+      "google",
+      "apple",
+      "microsoft",
+      "xbox",
+      "cn"
+    ]
+  }
+]
